@@ -2,7 +2,9 @@ import React from 'react'
 
 const TransactionStatsPage = () => {
   return (
-    <div>TransactionStatsPage</div>
+    <div>
+      
+    </div>
   )
 }
 
