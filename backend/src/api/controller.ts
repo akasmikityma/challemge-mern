@@ -217,52 +217,85 @@ export const getDataByCategory = async (req: Request, res: Response) => {
     }
 };
 
-export const allCombined=async(req:Request,res:Response)=>{
-  try{
-    const month=req.body;
-    const noOfItemsArr = await getItemsEachCategory(month);  //by category
-    console.log(`baler `,noOfItemsArr)
-    const resultProds=await getProdsByRange(month);   //bar data
-   
-    const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);  //stats data
-    const resultFromnotSold=await getNotSoldProductsByMonth(month);
+export const allCombined = async (req: Request, res: Response) => {
+  try {
+    const monthString = req.query.month;
+    const month = Number(monthString);
 
-    // ----all prods-----
+    if (!month || isNaN(month) || month < 1 || month > 12) {
+      return res.status(400).json({ error: "Invalid month parameter" });
+    }
+
+    // Fetch category-wise data
+    const noOfItemsArr = await getItemsEachCategory(month);
+    console.log(`Category-wise data:`, noOfItemsArr);
+
+    // Fetch bar data
+    const resultProds = await getProdsByRange(month);
+    console.log(`Bar data:`, resultProds);
+
+    // Fetch statistics data
+    const resultFromSold: TotalAmountResult | null = await getTotalAmount(month);
+    const resultFromnotSold = await getNotSoldProductsByMonth(month);
+    console.log(`Statistics data:`, {
+      total_sale: resultFromSold?.sum,
+      noOfSoldProds: resultFromSold?.noOfSoldThisMonth,
+      noOfNotSoldProds: resultFromnotSold,
+    });
+
+    // Fetch all products for the given month
     const { search = "", page = "1", perPage = "10" } = req.query;
 
     const pageNumber = Number(page);
     const perPageNumber = Number(perPage);
-  
-   
-      const searchNumber = parseFloat(search as string);
-      const whereClause = search
-        ? {
-            OR: [
-              { title: { contains: search as string, mode: "insensitive" } },
-              { description: { contains: search as string, mode: "insensitive" } },
-              ...(isNaN(searchNumber) ? [] : [{ price: { equals: searchNumber } }]),
-            ],
-          }
-        : {};
-  
-      const products = await prisma.product.findMany({
-        where: whereClause as any,
-        skip: (pageNumber - 1) * perPageNumber,
-        take: perPageNumber,
-      });
-   
+
+    const searchNumber = parseFloat(search as string);
+
+    let whereClause: any = search
+      ? {
+          OR: [
+            { title: { contains: search as string, mode: "insensitive" } },
+            { description: { contains: search as string, mode: "insensitive" } },
+            ...(isNaN(searchNumber) ? [] : [{ price: { equals: searchNumber } }]),
+          ],
+        }
+      : {};
+
+    const startDate = startOfMonth(new Date(Date.UTC(2022, month - 1, 1)));
+    const endDate = endOfMonth(new Date(Date.UTC(2022, month - 1, 1)));
+
+    whereClause.AND = [
+      ...(whereClause.AND || []),
+      { dateOfSale: { gte: startDate, lt: endDate } },
+    ];
+
+    const products = await prisma.product.findMany({
+      where: whereClause,
+      skip: (pageNumber - 1) * perPageNumber,
+      take: perPageNumber,
+    });
+
+    const totalProducts = await prisma.product.count({ where: whereClause });
+
     return res.status(200).json({
-      catgory_wise: noOfItemsArr,
+      category_wise: noOfItemsArr,
       barData: resultProds,
       monthStats: {
-        total_sale:resultFromSold?.sum,
-        noOfSoldProds:resultFromSold?.noOfSoldThisMonth,
-        noOfNotSoldProds:resultFromnotSold
+        total_sale: resultFromSold?.sum,
+        noOfSoldProds: resultFromSold?.noOfSoldThisMonth,
+        noOfNotSoldProds: resultFromnotSold,
       },
-      allprods:products
-    })
-
-  }catch(err){
-    console.log(err)
+      allProds: {
+        data: products,
+        pagination: {
+          total: totalProducts,
+          page: pageNumber,
+          perPage: perPageNumber,
+        },
+      },
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Something went wrong" });
   }
-}
+};
