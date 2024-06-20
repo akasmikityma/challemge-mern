@@ -95,34 +95,59 @@ export const getAllProductTransactions = async (req: Request, res: Response) => 
 
 
 
-export const getallstatictics=async(req:Request,res:Response)=>{
-  try{
-    const {month}=req.body;
-    const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);
-    const resultFromnotSold=await getNotSoldProductsByMonth(month);
-    if(resultFromSold&&resultFromnotSold){
-      res.json({
-        total_sale:resultFromSold.sum,
-        noOfSoldProds:resultFromSold.noOfSoldThisMonth,
-        noOfNotSoldProds:resultFromnotSold
-      })
-    }
-  }catch(err){
-    console.log(err)
-  }
+export const getallstatictics = async (req: Request, res: Response) => {
+  try {
+    const monthString = req.query.month;
 
-}
+    if (typeof monthString === 'string' && !isNaN(Number(monthString))) {
+      const month = Number(monthString); // Safe conversion to number
+
+      const resultFromSold: TotalAmountResult | null = await getTotalAmount(month);
+      const resultFromnotSold = await getNotSoldProductsByMonth(month);
+
+      // const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);
+      // const resultFromnotSold=await getNotSoldProductsByMonth(month);
+      if(resultFromSold&&resultFromnotSold){
+        res.json({
+          total_sale:resultFromSold.sum,
+          noOfSoldProds:resultFromSold.noOfSoldThisMonth,
+          noOfNotSoldProds:resultFromnotSold
+        })
+      }
+
+    } else {
+      // Handle invalid month (e.g., return error)
+      console.error("Invalid month parameter. Please provide a valid number.");
+      res.status(400).json({ error: "Invalid month parameter" });
+    }
+  } catch (err) {
+    console.error("Error in getallstatictics:", err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+};
 
 // ---------------------  bar Data ----------------------------
 
 export const getBarData=async(req:Request,res:Response)=>{
     try{
-      //i ve to get the month and the range from the user and then call the function 
-      const month=req.body.month;
-      const resultProds=await getProdsByRange(month);
-      res.status(200).json({
-        res:resultProds
+      const monthString = req.query.month;
+
+    if (typeof monthString === 'string' && !isNaN(Number(monthString))) {
+      const month = Number(monthString); // Safe conversion to number
+
+      const bardata= await getProdsByRange(month)
+      
+      // const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);
+      // const resultFromnotSold=await getNotSoldProductsByMonth(month);
+      res.json({
+        bardata
       })
+
+    } else {
+      // Handle invalid month (e.g., return error)
+      console.error("Invalid month parameter. Please provide a valid number.");
+      res.status(400).json({ error: "Invalid month parameter" });
+    }
     }catch(err){
       console.log(err)
     }
