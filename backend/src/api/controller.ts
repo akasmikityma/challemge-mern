@@ -1,10 +1,12 @@
 //all the api controllers are wriiten here >>
 import { PrismaClient } from "@prisma/client";
+import { Prisma, } from "@prisma/client";
 import { Request, Response } from "express";
 import { getTotalAmount } from "../api2helpers/gettotalsaleamount";
 import { getNotSoldProductsByMonth } from "../api2helpers/helper";
 import { getProdsByRange } from "../api3helpers/bar";
 import { seeding_data } from "../seeding";
+import { startOfMonth,endOfMonth } from "date-fns";
 const prisma = new PrismaClient();
 
 interface rangetype{
@@ -28,15 +30,17 @@ interface Product {
   dateOfSale: Date|string;
 }
 
+
 export const getAllProductTransactions = async (req: Request, res: Response) => {
-  const { search = "", page = "1", perPage = "10" } = req.query;
+  const { search = "", page = "1", perPage = "10", month } = req.query;
 
   const pageNumber = Number(page);
   const perPageNumber = Number(perPage);
 
   try {
     const searchNumber = parseFloat(search as string);
-    const whereClause = search
+
+    let whereClause: any = search
       ? {
           OR: [
             { title: { contains: search as string, mode: "insensitive" } },
@@ -46,13 +50,33 @@ export const getAllProductTransactions = async (req: Request, res: Response) => 
         }
       : {};
 
+    if (month) {
+      const monthNumber = Number(month);
+      if (!isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+        const year = 2022; // Assuming we only have data up to 2022
+        const startDate = startOfMonth(new Date(Date.UTC(year, monthNumber - 1, 1)));
+        const endDate = endOfMonth(new Date(Date.UTC(year, monthNumber - 1, 1)));
+
+        whereClause.AND = [
+          ...(whereClause.AND || []),
+          { dateOfSale: { gte: startDate, lt: endDate } },
+        ];
+
+        console.log(`Filtering by month: ${monthNumber}`);
+        console.log(`Start date: ${startDate.toISOString()}`);
+        console.log(`End date: ${endDate.toISOString()}`);
+      }
+    }
+
+    console.log("Constructed whereClause:", JSON.stringify(whereClause, null, 2));
+
     const products = await prisma.product.findMany({
-      where: whereClause as any,
+      where: whereClause,
       skip: (pageNumber - 1) * perPageNumber,
       take: perPageNumber,
     });
 
-    const totalProducts = await prisma.product.count({ where: whereClause as any });
+    const totalProducts = await prisma.product.count({ where: whereClause });
 
     res.json({
       data: products,
@@ -67,6 +91,7 @@ export const getAllProductTransactions = async (req: Request, res: Response) => 
     res.status(500).json({ error: "Something went wrong" });
   }
 };
+
 
 
 
@@ -171,6 +196,7 @@ export const allCombined=async(req:Request,res:Response)=>{
   try{
     const month=req.body;
     const noOfItemsArr = await getItemsEachCategory(month);  //by category
+    console.log(`baler `,noOfItemsArr)
     const resultProds=await getProdsByRange(month);   //bar data
    
     const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);  //stats data

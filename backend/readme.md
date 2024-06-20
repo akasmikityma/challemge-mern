@@ -46,4 +46,4 @@ GET
 
 GET
     Create an API which fetches the data from all the 3 APIs mentioned above, combines
-    the response and sends a final response of the combined JSON
+    the response and sends a final response of the combined JSON   [doesnt_work]
