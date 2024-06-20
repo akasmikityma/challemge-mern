@@ -1,4 +1,9 @@
+
+
 //all the api controllers are wriiten here >>
+
+
+
 import { PrismaClient } from "@prisma/client";
 import { Prisma, } from "@prisma/client";
 import { Request, Response } from "express";
@@ -53,7 +58,7 @@ export const getAllProductTransactions = async (req: Request, res: Response) => 
     if (month) {
       const monthNumber = Number(month);
       if (!isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
-        const year = 2022; // Assuming we only have data up to 2022
+        const year = 2022; 
         const startDate = startOfMonth(new Date(Date.UTC(year, monthNumber - 1, 1)));
         const endDate = endOfMonth(new Date(Date.UTC(year, monthNumber - 1, 1)));
 
@@ -100,13 +105,12 @@ export const getallstatictics = async (req: Request, res: Response) => {
     const monthString = req.query.month;
 
     if (typeof monthString === 'string' && !isNaN(Number(monthString))) {
-      const month = Number(monthString); // Safe conversion to number
+      const month = Number(monthString); 
 
       const resultFromSold: TotalAmountResult | null = await getTotalAmount(month);
       const resultFromnotSold = await getNotSoldProductsByMonth(month);
 
-      // const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);
-      // const resultFromnotSold=await getNotSoldProductsByMonth(month);
+   
       if(resultFromSold&&resultFromnotSold){
         res.json({
           total_sale:resultFromSold.sum,
@@ -116,7 +120,7 @@ export const getallstatictics = async (req: Request, res: Response) => {
       }
 
     } else {
-      // Handle invalid month (e.g., return error)
+      
       console.error("Invalid month parameter. Please provide a valid number.");
       res.status(400).json({ error: "Invalid month parameter" });
     }
@@ -133,18 +137,17 @@ export const getBarData=async(req:Request,res:Response)=>{
       const monthString = req.query.month;
 
     if (typeof monthString === 'string' && !isNaN(Number(monthString))) {
-      const month = Number(monthString); // Safe conversion to number
+      const month = Number(monthString); 
 
       const bardata= await getProdsByRange(month)
       
-      // const resultFromSold:TotalAmountResult|null=await getTotalAmount(month);
-      // const resultFromnotSold=await getNotSoldProductsByMonth(month);
+     
       res.json({
         bardata
       })
 
     } else {
-      // Handle invalid month (e.g., return error)
+      
       console.error("Invalid month parameter. Please provide a valid number.");
       res.status(400).json({ error: "Invalid month parameter" });
     }
@@ -154,7 +157,7 @@ export const getBarData=async(req:Request,res:Response)=>{
 } 
 
 
-// ------cateory wise data -----------------
+// ----------------------------------cateory wise data --------------------------------------------
 
 
 
@@ -190,7 +193,7 @@ export const getItemsEachCategory = async (month: number) => {
             });
 
             const filteredProducts = items.filter(product => {
-                const productMonth = new Date(product.dateOfSale).getMonth() + 1; // Ensure dateOfSale is a Date object
+                const productMonth = new Date(product.dateOfSale).getMonth() + 1; 
                 return productMonth === month;
             });
 
@@ -201,9 +204,11 @@ export const getItemsEachCategory = async (month: number) => {
         return resArray;
     } catch (err) {
         console.log(err);
-        throw err; // It's a good practice to throw the error after logging it
+        throw err; 
     }
 };
+
+
 export const getDataByCategory = async (req: Request, res: Response) => {
     try {
         const { month } = req.body;
@@ -216,6 +221,9 @@ export const getDataByCategory = async (req: Request, res: Response) => {
         res.status(500).json({ error: "An error occurred while fetching data" });
     }
 };
+
+// --------------------------------------------------------all Combined------------------------------------------------------
+
 
 export const allCombined = async (req: Request, res: Response) => {
   try {
